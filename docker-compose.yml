@@ -1,0 +1,60 @@
+version: '3.8'
+services:
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    networks:
+      - backend-net
+      - broker-net
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin123
+
+  auth-service:
+    build: ./auth-service
+    ports:
+      - "8001:8000"
+    environment:
+      - JWT_SECRET=supersecretkey123
+      - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672/
+    depends_on:
+      - rabbitmq
+    networks:
+      - backend-net
+      - auth-net
+
+  product-service:
+    build: ./product-service
+    ports:
+      - "8002:8000"
+    environment:
+      - JWT_SECRET=supersecretkey123
+    depends_on:
+      - auth-service
+    networks:
+      - backend-net
+      - product-net
+
+  order-service:
+    build: ./order-service
+    ports:
+      - "8003:8000"
+    environment:
+      - JWT_SECRET=supersecretkey123
+      - RABBITMQ_URL=amqp://admin:admin123@rabbitmq:5672/
+    depends_on:
+      - rabbitmq
+      - auth-service
+    networks:
+      - backend-net
+      - broker-net
+      - order-net
+
+networks:
+  backend-net:
+  auth-net:
+  product-net:
+  order-net:
+  broker-net:
